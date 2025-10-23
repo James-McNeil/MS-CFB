@@ -1,26 +1,64 @@
 import struct
 import uuid
-from ms_dtyp.filetime import Filetime
-from rbtree.node import Node
+from datetime import datetime, timezone
 from typing import TypeVar
 
 
-T = TypeVar('T', bound='Directory')
+class Filetime:
+    """A simple implementation of Windows FILETIME for OLE directory timestamps"""
+
+    def __init__(
+        self,
+        year: int = 1601,
+        month: int = 1,
+        day: int = 1,
+        hour: int = 0,
+        minute: int = 0,
+        second: int = 0,
+    ):
+        if (
+            year == 1601
+            and month == 1
+            and day == 1
+            and hour == 0
+            and minute == 0
+            and second == 0
+        ):
+            # Default null timestamp
+            self._datetime = datetime(1601, 1, 1, tzinfo=timezone.utc)
+        else:
+            self._datetime = datetime(
+                year, month, day, hour, minute, second, tzinfo=timezone.utc
+            )
+
+    def to_msfiletime(self) -> int:
+        """Convert to Microsoft FILETIME format (100-nanosecond intervals since Jan 1, 1601)"""
+        epoch = datetime(1601, 1, 1, tzinfo=timezone.utc)
+        delta = self._datetime - epoch
+        return int(delta.total_seconds() * 10_000_000)
+
+    def __str__(self) -> str:
+        return self._datetime.isoformat()
 
 
-class Directory(Node):
+T = TypeVar("T", bound="Directory")
+
+
+class NullNode:
+    """Represents a null node in the red-black tree"""
+
+    def is_null(self) -> bool:
+        return True
+
+    def get_flattened_index(self) -> int:
+        """Return the flattened index for null nodes (always 0xFFFFFFFF)"""
+        return 0xFFFFFFFF
+
+
+class Directory:
     """An OLE directory object"""
 
     def __init__(self: T) -> None:
-        # This object is a node in a red-black tree.
-        Node.__init__(self)
-
-        # The directory to the left on the tree.
-        self.left = Node()
-
-        # The directory to the right on the tree.
-        self.right = Node()
-
         # The object's name.
         self.name = ""
 
@@ -46,17 +84,31 @@ class Directory(Node):
         # This object's index in the flattened representation of the tree.
         self._flattened_index = 0
 
+        # Add color property for red-black tree
+        self._color = "black"  # Default to black
+
+        # Red-black tree structure
+        self.left = NullNode()
+        self.right = NullNode()
+
         self.prev_index: int
         self.next_index: int
         self.sub_index: int
 
     def __str__(self: T) -> str:
-        return (self.get_name() +
-                "\n\tCreated: " + str(self._created) +
-                "\n\tModified: " + str(self._modified) +
-                "\n\tGUID: " + str(self._class_id) +
-                "\n\tStart Sector: " + str(self.get_start_sector()) +
-                "\n\tSize: " + str(self.file_size()))
+        return (
+            self.get_name()
+            + "\n\tCreated: "
+            + str(self._created)
+            + "\n\tModified: "
+            + str(self._modified)
+            + "\n\tGUID: "
+            + str(self._class_id)
+            + "\n\tStart Sector: "
+            + str(self.get_start_sector())
+            + "\n\tSize: "
+            + str(self.file_size())
+        )
 
     @property
     def key(self: T) -> tuple:
@@ -109,6 +161,10 @@ class Directory(Node):
     def set_flattened_index(self: T, index: int) -> None:
         self._flattened_index = index
 
+    def get_flattened_index(self: T) -> int:
+        """Get the flattened index of this directory"""
+        return self._flattened_index
+
     def get_subdirectory_index(self: T) -> int:
         """
         The the root node of the red-black tree which organizes the streams
@@ -116,21 +172,33 @@ class Directory(Node):
         """
         return 0xFFFFFFFF
 
-    def to_bytes(self: T) -> bytes:
+    def get_color(self: T) -> str:
+        """Get the red-black tree node color"""
+        return getattr(self, "_color", "black")
+
+    def set_color(self: T, color: str) -> None:
+        """Set the red-black tree node color"""
+        self._color = color
+
+    def is_null(self: T) -> bool:
+        """Check if this is a null node"""
+        return False
+
+    def to_bytes(
+        self: T, color: int = 1, left: int = 0xFFFFFFFF, right: int = 0xFFFFFFFF
+    ) -> bytes:
         format = "<64shbb3I16sIQQIII"
-        color = 0 if self.get_color == "red" else 1
+        color = 0 if self.get_color() == "red" else 1
         right = 0
         if self.right.is_null():
             right = 0xFFFFFFFF
         else:
-            assert isinstance(self.right, Directory)
-            right = self.right._flattened_index
+            right = self.right.get_flattened_index()
         left = 0
         if self.left.is_null():
             left = 0xFFFFFFFF
         else:
-            assert isinstance(self.left, Directory)
-            left = self.left._flattened_index
+            left = self.left.get_flattened_index()
         dir = struct.pack(
             format,
             self.name.encode("utf_16_le"),
@@ -146,6 +214,6 @@ class Directory(Node):
             self._modified.to_msfiletime(),
             self.get_start_sector(),
             self.file_size(),
-            0
+            0,
         )
         return dir
