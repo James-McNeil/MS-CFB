@@ -6,7 +6,7 @@ from ms_dtyp.filetime import Filetime
 from typing import TypeVar
 
 
-T = TypeVar('T', bound='StreamDirectory')
+T = TypeVar("T", bound="StreamDirectory")
 
 
 class StreamDirectory(FileStream, Directory):
@@ -22,9 +22,13 @@ class StreamDirectory(FileStream, Directory):
         self._file_path = path
 
     def __str__(self: T) -> str:
-        return (self.get_name() +
-                "\n\tStart Sector: " + str(self.get_start_sector()) +
-                "\n\tSize: " + str(self.file_size()))
+        return (
+            self.get_name()
+            + "\n\tStart Sector: "
+            + str(self.get_start_sector())
+            + "\n\tSize: "
+            + str(self.file_size())
+        )
 
     def set_created(self: T, created: Filetime) -> None:
         if not created.to_msfiletime() == 0:
@@ -43,7 +47,7 @@ class StreamDirectory(FileStream, Directory):
 
     def set_start_sector(self: T, sector: int) -> None:
         """
-        Copied feom StreamBase since Directory has a
+        Copied from StreamBase since Directory has a
         function with the same name.
         Set the location of the first sector of the file
         Must be run first

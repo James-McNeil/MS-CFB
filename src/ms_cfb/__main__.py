@@ -17,22 +17,30 @@ def main() -> None:
     subroutine.
     """
     parser = argparse.ArgumentParser()
-    parser.add_argument("directory", nargs='?', default='.',
-                        help="The input or output directory.")
-    parser.add_argument("-c", "--create", action="store_true",
-                        help="Create an OLE file from a directory.")
-    help_string = ("Display metadata on the OLE file and list the files that "
-                   "it contains.")
-    parser.add_argument("-l", "--list", action="store_true",
-                        help=help_string)
-    parser.add_argument("-x", "--extract", action="store_true",
-                        help="Extract files from an OLE file to a directory.")
-    parser.add_argument("-v", "--version", type=int, choices=[3, 4],
-                        help="The OLE version to use.")
-    parser.add_argument("-f", "--file",
-                        help="The input or output bin file name")
-    parser.add_argument("-X", "--extra",
-                        help="Path to exta settings yml file.")
+    parser.add_argument(
+        "directory", nargs="?", default=".", help="The input or output directory."
+    )
+    parser.add_argument(
+        "-c",
+        "--create",
+        action="store_true",
+        help="Create an OLE file from a directory.",
+    )
+    help_string = (
+        "Display metadata on the OLE file and list the files that " "it contains."
+    )
+    parser.add_argument("-l", "--list", action="store_true", help=help_string)
+    parser.add_argument(
+        "-x",
+        "--extract",
+        action="store_true",
+        help="Extract files from an OLE file to a directory.",
+    )
+    parser.add_argument(
+        "-v", "--version", type=int, choices=[3, 4], help="The OLE version to use."
+    )
+    parser.add_argument("-f", "--file", help="The input or output bin file name")
+    parser.add_argument("-X", "--extra", help="Path to exta settings yml file.")
     args = parser.parse_args()
     if args.create:
         main_create(args)
@@ -53,7 +61,7 @@ def main_create(args: argparse.Namespace) -> None:
         ole_file.version = 4
     config: dict = {"directories": {}}
     if args.extra is not None and os.path.isfile(args.extra):
-        stream = open(args.extra, 'r')
+        stream = open(args.extra, "r")
         config = yaml.safe_load(stream)
     new_config = config["directories"]
 
@@ -91,7 +99,7 @@ def main_list(args: argparse.Namespace) -> None:
     print(str(ole_file))
 
 
-def update_attributes(dir: 'Directory', conf: dict) -> None:
+def update_attributes(dir: "Directory", conf: dict) -> None:
     """
     Update metadata of the OLE file streams using information provided in the
     configuration file.
@@ -109,10 +117,9 @@ def update_attributes(dir: 'Directory', conf: dict) -> None:
         # dir.set_flags(conf["flags"])
 
 
-def create_storage(direntry: os.DirEntry,
-                   directories: dict) -> StorageDirectory:
+def create_storage(direntry: os.DirEntry, directories: dict) -> StorageDirectory:
     """
-    Traverse the file stricture and cretae a tree of Storage and Stream
+    Traverse the file structure and create a tree of Storage and Stream
     Directories.
     """
     dir = StorageDirectory(direntry.name)
@@ -132,5 +139,5 @@ def create_storage(direntry: os.DirEntry,
     return dir
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

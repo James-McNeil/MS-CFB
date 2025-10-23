@@ -2,7 +2,7 @@ from ms_cfb.Models.DataStreams.stream_base import StreamBase
 from typing import Any, MutableSequence, TypeVar, overload
 
 
-T = TypeVar('T', bound='ArrayStream')
+T = TypeVar("T", bound="ArrayStream")
 
 
 class ArrayStream(StreamBase, MutableSequence[T]):
@@ -12,6 +12,7 @@ class ArrayStream(StreamBase, MutableSequence[T]):
     This class is a base class. Child classes must implement
     the _render_element() method.
     """
+
     # Constructor
     def __init__(self: T, child_sector_size: int) -> None:
         super(ArrayStream, self).__init__()
@@ -61,9 +62,7 @@ class ArrayStream(StreamBase, MutableSequence[T]):
     def stream_size(self: T) -> int:
         sum = 0
         for stream in self._data:
-            sectors = ((stream.stream_size() - 1)
-                       // self._child_sector_size
-                       + 1)
+            sectors = (stream.stream_size() - 1) // self._child_sector_size + 1
             sum += sectors * self._child_sector_size
         return sum
 
@@ -75,4 +74,4 @@ class ArrayStream(StreamBase, MutableSequence[T]):
         self._data.append(data)
 
     def _render_element(self: T, data: Any) -> bytes:
-        raise Exception("must be implemented bu child")
+        raise NotImplementedError("must be implemented by child")

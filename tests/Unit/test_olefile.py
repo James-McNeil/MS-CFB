@@ -20,15 +20,14 @@ def test_version_property() -> None:
 
 
 def test_extract() -> None:
-    ole_file = OleFile.create_from_file('tests/vbaProject.bin')
+    ole_file = OleFile.create_from_file("tests/vbaProject.bin")
     sectors = ole_file.minifat_chain.get_streams().get_sectors()
     assert sectors == [3, 4, 5, 6, 8, 9, 10, 11, 12, 13, 14, 15, 17]
-    dir = ''.join(random.choices(string.ascii_uppercase +
-                                 string.digits, k=7))
-    ole_file.extract_stream('PROJECTwm', dir)
-    fa = open(dir + '/PROJECTwm.bin', 'rb')
+    output_dir = "".join(random.choices(string.ascii_uppercase + string.digits, k=7))
+    ole_file.extract_stream("PROJECTwm", output_dir)
+    fa = open(output_dir + "/PROJECTwm.bin", "rb")
     actual = fa.read()
-    fe = open('tests/vbaProject.bin', 'rb')
+    fe = open("tests/vbaProject.bin", "rb")
     fe.seek(0x2100)
     expected = fe.read(86)
     assert actual == expected

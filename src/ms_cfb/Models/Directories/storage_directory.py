@@ -3,12 +3,12 @@ from rbtree.rbtree import RedBlackTree
 from typing import TypeVar
 
 
-T = TypeVar('T', bound='StorageDirectory')
+T = TypeVar("T", bound="StorageDirectory")
 
 
 class StorageDirectory(Directory):
     """
-    A StorageDirectory represents a file system diresctory. It adds a red-black
+    A StorageDirectory represents a file system directory. It adds a red-black
     tree to the parent class as a way to organize its contents.
     """
 
@@ -19,10 +19,15 @@ class StorageDirectory(Directory):
         self.directories = RedBlackTree()
 
     def __str__(self: T) -> str:
-        return (self.get_name() +
-                "\n\tCreated: " + str(self._created) +
-                "\n\tModified: " + str(self._modified) +
-                "\n\tGUID: " + str(self._class_id))
+        return (
+            self.get_name()
+            + "\n\tCreated: "
+            + str(self._created)
+            + "\n\tModified: "
+            + str(self._modified)
+            + "\n\tGUID: "
+            + str(self._class_id)
+        )
 
     def get_subdirectory_index(self: T) -> int:
         """
@@ -42,7 +47,7 @@ class StorageDirectory(Directory):
             size += dir.minifat_sectors_used()
         return size
 
-    def add_directory(self: T, dir: 'Directory') -> None:
+    def add_directory(self: T, dir: "Directory") -> None:
         self.directories.insert(dir)
 
     def flatten(self: T) -> list:
