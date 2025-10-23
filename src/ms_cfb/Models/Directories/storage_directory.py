@@ -1,14 +1,14 @@
 from ms_cfb.Models.Directories.directory import Directory
-from red_black_dict_mod import RedBlackTree
+from rbtree.rbtree import RedBlackTree
 from typing import TypeVar
 
 
-T = TypeVar('T', bound='StorageDirectory')
+T = TypeVar("T", bound="StorageDirectory")
 
 
 class StorageDirectory(Directory):
     """
-    A StorageDirectory represents a file system diresctory. It adds a red-black
+    A StorageDirectory represents a file system directory. It adds a red-black
     tree to the parent class as a way to organize its contents.
     """
 
@@ -19,10 +19,15 @@ class StorageDirectory(Directory):
         self.directories = RedBlackTree()
 
     def __str__(self: T) -> str:
-        return (self.get_name() +
-                "\n\tCreated: " + str(self._created) +
-                "\n\tModified: " + str(self._modified) +
-                "\n\tGUID: " + str(self._class_id))
+        return (
+            self.get_name()
+            + "\n\tCreated: "
+            + str(self._created)
+            + "\n\tModified: "
+            + str(self._modified)
+            + "\n\tGUID: "
+            + str(self._class_id)
+        )
 
     def insert(self: T, node: Directory) -> None:
         self.directories.add(node.get_key(), node)
@@ -32,9 +37,11 @@ class StorageDirectory(Directory):
         Overriding Directory.get_subdirectory_index()
         If the red-black tree has a root, return its flattened index.
         """
-        node = self.directories.get_root()
+        dir = self.directories
+        node = dir.root
         if node.is_null():
             return 0xFFFFFFFF
+        assert isinstance(node, Directory)
         return node._flattened_index
 
     def minifat_sectors_used(self: T) -> int:
@@ -43,7 +50,7 @@ class StorageDirectory(Directory):
             size += dir.minifat_sectors_used()
         return size
 
-    def add_directory(self: T, dir: 'Directory') -> None:
+    def add_directory(self: T, dir: "Directory") -> None:
         self.directories.insert(dir)
 
     def flatten(self: T) -> list:
@@ -65,7 +72,7 @@ class StorageDirectory(Directory):
         return (
             (0 if node.is_red else 1),
             node.right.value._flattened_index,
-            node.left.value._flattened_index
+            node.left.value._flattened_index,
         )
 
     def create_file_tree(self: T, depth: int) -> list:

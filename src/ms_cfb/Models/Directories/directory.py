@@ -1,13 +1,14 @@
 import struct
 import uuid
 from ms_dtyp.filetime import Filetime
+from rbtree.node import Node
 from typing import TypeVar
 
 
-T = TypeVar('T', bound='Directory')
+T = TypeVar("T", bound="Directory")
 
 
-class Directory():
+class Directory:
     """An OLE directory object"""
 
     def __init__(self: T) -> None:
@@ -36,20 +37,32 @@ class Directory():
         # This object's index in the flattened representation of the tree.
         self._flattened_index = 0
 
-    def __str__(self: T) -> str:
-        return (self.get_name() +
-                "\n\tCreated: " + str(self._created) +
-                "\n\tModified: " + str(self._modified) +
-                "\n\tGUID: " + str(self._class_id) +
-                "\n\tStart Sector: " + str(self.get_start_sector()) +
-                "\n\tSize: " + str(self.file_size()))
+        self.prev_index: int
+        self.next_index: int
+        self.sub_index: int
 
-    def get_key(self: T) -> tuple[int, str]:
+    def __str__(self: T) -> str:
+        return (
+            self.get_name()
+            + "\n\tCreated: "
+            + str(self._created)
+            + "\n\tModified: "
+            + str(self._modified)
+            + "\n\tGUID: "
+            + str(self._class_id)
+            + "\n\tStart Sector: "
+            + str(self.get_start_sector())
+            + "\n\tSize: "
+            + str(self.file_size())
+        )
+
+    @property
+    def key(self: T) -> tuple:
         return (len(self.name), self.name.upper())
 
-    def set_color(self: T, value: str) -> None:
-        is_blk = str == "black"
-        self.is_black = is_blk
+    @key.setter
+    def key(self: T, value: None = None) -> None:
+        pass
 
     def set_created(self: T, value: Filetime) -> None:
         self._created = value
@@ -101,10 +114,23 @@ class Directory():
         """
         return 0xFFFFFFFF
 
-    def to_bytes(self: T, color:int = 1, left:int = 0xFFFFFFFF, right:int = 0xFFFFFFFF) -> bytes:
+    def to_bytes(
+        self: T, color: int = 1, left: int = 0xFFFFFFFF, right: int = 0xFFFFFFFF
+    ) -> bytes:
         format = "<64shbb3I16sIQQIII"
-        if self._type == 5 and len(self.directories) > 2:
-            color = 0
+        color = 0 if self.get_color == "red" else 1
+        right = 0
+        if self.right.is_null():
+            right = 0xFFFFFFFF
+        else:
+            assert isinstance(self.right, Directory)
+            right = self.right._flattened_index
+        left = 0
+        if self.left.is_null():
+            left = 0xFFFFFFFF
+        else:
+            assert isinstance(self.left, Directory)
+            left = self.left._flattened_index
         dir = struct.pack(
             format,
             self.name.encode("utf_16_le"),
@@ -120,6 +146,6 @@ class Directory():
             self._modified.to_msfiletime(),
             self.get_start_sector(),
             self.file_size(),
-            0
+            0,
         )
         return dir

@@ -1,4 +1,4 @@
-from typing import TypeVar
+from typing import Any, TypeVar
 
 
 T = TypeVar('T', bound='StreamBase')
@@ -14,19 +14,16 @@ class StreamBase:
 
         # The stuff that will be used to squeeze data into the chain.
         # It can just be the data itself.
-        self._data = b''
+        self._data: Any = b''
 
         # An array of sectors this stream will reside
-        self._sectors = []
+        self._sectors: list = []
 
         # bytes to pad data to fill a sector
         self._padding = b'\x00'
 
         # the size in bytes of a sector in the storage chain
         self._storage_sector_size = 64
-
-    def set_padding(self: T, padding: bytes) -> None:
-        self._padding = padding
 
     def set_start_sector(self: T, sector: int) -> None:
         """
@@ -36,6 +33,9 @@ class StreamBase:
         self._sectors = [sector]
 
     def get_start_sector(self: T) -> int:
+        """
+        Get the sector in which the first block of this stream resides.
+        """
         return self._sectors[0]
 
     def set_storage_sector_size(self: T, size: int) -> None:
@@ -51,7 +51,7 @@ class StreamBase:
     def get_sectors(self: T) -> list:
         return self._sectors
 
-    def append(self: T, data: bytes) -> None:
+    def append(self: T, data: Any) -> None:
         """
         Extend the data in this stream.
         Request additional chain storage if needed
@@ -66,6 +66,7 @@ class StreamBase:
 
     def _extend_data(self: T, data: bytes) -> None:
         """
-        Add new data to the bytearray
+        Add new data to the stream.
+        In this basic implementation, the byte array is lengthed.
         """
         self._data += data

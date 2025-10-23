@@ -21,8 +21,7 @@ class OleFile:
 
         # Instance Attributes
         self._minor_version = 62
-        self._major_version = 3
-        self._sector_shift = 9
+        self.version = 3
         self._mini_sector_shift = 6
         self._first_directory_list_sector = 1
         self._guid = uuid.UUID(int=0x00)
@@ -40,12 +39,16 @@ class OleFile:
         self._minifat_chain = MinifatFilesystem()
 
         # A list of directories
-        self._directory = RootDirectory()
+        self.root_directory = RootDirectory()
 
+        # The path to the file
+        self.path = ""
+
+    # Dunder Methods
     def __str__(self: T) -> str:
-        version = self.get_version_string()
+        version = self.version_string
         output = ('Version ' + version + ' OLE file\n')
-        output += ('GUID: ' + str(self.get_guid()) + '\n')
+        output += ('GUID: ' + str(self.guid) + '\n')
         output += 'File Structure:\n'
         for directory in self._directory.create_file_tree(0):
             output += '\t' * directory[0] + directory[1] + '\n'
@@ -58,7 +61,13 @@ class OleFile:
         output += 'Tree:\n' + '\n'.join(tree)
         return output
 
-    def set_version(self: T, version: int) -> None:
+    # Properties, Setters, and Getters
+    @property
+    def version(self: T) -> int:
+        return self._major_version
+
+    @version.setter
+    def version(self: T, version: int) -> None:
         if version > 4 or version < 3:
             raise Exception("Version must be 3 or 4")
         self._major_version = version
@@ -68,17 +77,25 @@ class OleFile:
             self._sector_shift = 12
         self._fat_chain = FatFilesystem(2 ** self._sector_shift)
 
-    def get_version(self: T) -> int:
-        return self._major_version
-
-    def get_version_string(self: T) -> str:
-        return str(self._major_version) + '.' + str(self._minor_version)
-
-    def get_guid(self: T) -> uuid.UUID:
+    @property
+    def guid(self: T) -> uuid.UUID:
         return self._guid
 
-    def set_root_directory(self: T, dir: RootDirectory) -> None:
+    @property
+    def version_string(self: T) -> str:
+        return str(self._major_version) + '.' + str(self._minor_version)
+
+    @property
+    def root_directory(self: T) -> RootDirectory:
+        return self._directory
+
+    @root_directory.setter
+    def root_directory(self: T, dir: RootDirectory) -> None:
         self._directory = dir
+
+    @property
+    def minifat_chain(self: T) -> MinifatFilesystem:
+        return self._minifat_chain
 
     def add_directory_entry(self: T, object: 'Directory') -> None:
         """
@@ -87,9 +104,7 @@ class OleFile:
         # verify type of object
         self._directory.add_directory(object)
 
-    def get_minifat_chain(self: T) -> MinifatFilesystem:
-        return self._minifat_chain
-
+    # Methods
     def header(self: T) -> bytes:
         """
         Create a 512 byte header sector for a OLE object.
@@ -147,7 +162,7 @@ class OleFile:
             return 0
         return (count - 109 - 1) // (2 ** (self._sector_shift - 2)) + 1
 
-    def write_header_fat_sector_list(self: T) -> None:
+    def write_header_fat_sector_list(self: T) -> bytes:
         """
         Create a 436 byte stream of the first 109 FAT sectors, padded with
         \\xFF.
@@ -361,7 +376,7 @@ class OleFile:
         fat_sector_list = struct.unpack(format, fat_sector_list_bytes)
 
         # Read fat sectors and assemble into sector list.
-        fat = []
+        fat: list = []
         i = 0
         num = 2 ** (sector_shift - 2)
         format = "<" + str(num) + "I"
@@ -376,7 +391,7 @@ class OleFile:
             sector = fat_sector_list[i]
 
         # Read minifat sectors and assemble into sector list.
-        minifat = []
+        minifat: list = []
         sector = obj._first_minichain_sector
         while sector != 0xFFFFFFFE:
             f.seek((sector + 1) * fat_sector_bytes)
@@ -425,9 +440,12 @@ class OleFile:
                 directory.right = right
                 right.parent = directory
             if directory.sub_index != 0xFFFFFFFF:
+                assert isinstance(directory, StorageDirectory)
                 child = flat_directories[directory.sub_index]
                 directory.directories.root = child
-        obj.set_root_directory(flat_directories[0])
+        dir_0 = flat_directories[0]
+        assert isinstance(dir_0, RootDirectory)
+        obj.root_directory = dir_0
 
         # extract minifat chain
         return obj

@@ -14,7 +14,7 @@ class MinifatFilesystem(FilesystemBase, StreamBase):
         minifat_sector_size = 64
         FilesystemBase.__init__(self, minifat_sector_size)
         StreamBase.__init__(self)
-        self._streams = FileArray(minifat_sector_size)
+        self._streams: FileArray = FileArray(minifat_sector_size)
 
     def set_storage_sector_size(self: T, size: int) -> None:
         """
@@ -40,7 +40,6 @@ class MinifatFilesystem(FilesystemBase, StreamBase):
     def _start_new_chain(self: T) -> int:
         # Increase the necessary chain resources by one address
         new_sector = self._reserve_next_free_sector()
-        self.append(1)
         return new_sector
 
     def stream_size(self: T) -> int:
@@ -49,7 +48,7 @@ class MinifatFilesystem(FilesystemBase, StreamBase):
         """
         return 4 * len(self)
 
-    def _extend_data(self: T, number: int) -> None:
+    def _extend_data(self: T, number: bytes) -> None:
         """
         implementation of StreamBase._extend_data()
         """

@@ -2,7 +2,7 @@ import os
 import string
 from ms_cfb.Models.DataStreams.stream_base import StreamBase
 from random import choice
-from typing import TypeVar
+from typing import MutableSequence, TypeVar
 
 
 T = TypeVar('T', bound='FilesystemBase')
@@ -23,7 +23,7 @@ class FilesystemBase:
 
         # Each stream begins at the start of a sector and is padded to fill
         # the end of a sector.
-        self._streams = []
+        self._streams: MutableSequence = []
 
     def __len__(self: T) -> int:
         return self._next_free_sector
@@ -38,7 +38,7 @@ class FilesystemBase:
         """
         Express the sector chain as a list of ints
         """
-        chain = []
+        chain: list = []
         for stream in self._streams:
             sectors = stream.get_sectors()
             max = sectors[-1]
@@ -54,13 +54,9 @@ class FilesystemBase:
 
         return chain
 
-    def _reserve_next_free_sector(self: T) -> int:
-        sector = self._next_free_sector
-        self._next_free_sector += 1
-        return sector
-
     def extend_chain(self: T, stream: 'StreamBase', number: int) -> None:
         """
+        Reserve the provided number of sectors for the specified stream.
         """
         sector_list = []
         for i in range(number):
@@ -91,11 +87,6 @@ class FilesystemBase:
             self.extend_chain(stream, sectors_needed)
         self._streams.append(stream)
 
-    def _start_new_chain(self: T) -> int:
-        # Increase the necessary chain resources by one address
-        new_sector = self._reserve_next_free_sector()
-        return new_sector
-
     def write_chain(self: T, path: str) -> None:
         """
         write the chain list to a file.
@@ -107,20 +98,32 @@ class FilesystemBase:
             f.write(address.to_bytes(4, "little"))
 
     def write_streams(self: T, path: str) -> None:
-        sectors = len(self)
+        num_sectors = len(self)
         f = open(path, "wb")
-        f.write(b'\x02' * sectors * self._sector_size)
+        f.write(b'\x02' * num_sectors * self._sector_size)
         i = 0
         for stream in self._streams:
-            sectors = stream.get_sectors()
+            sector_list = stream.get_sectors()
             rand = ''.join([choice(string.ascii_letters) for i in range(5)])
             filename = "stream" + str(i) + rand + ".bin"
             stream.to_file(filename)
             s = open(filename, "rb")
-            for sector in sectors:
+            for sector in sector_list:
                 sector_data = s.read(self._sector_size)
                 f.seek(sector * self._sector_size)
                 f.write(sector_data)
             s.close()
             os.remove(filename)
             i += 1
+
+    # Private Methods
+
+    def _reserve_next_free_sector(self: T) -> int:
+        sector = self._next_free_sector
+        self._next_free_sector += 1
+        return sector
+
+    def _start_new_chain(self: T) -> int:
+        # Increase the necessary chain resources by one address
+        new_sector = self._reserve_next_free_sector()
+        return new_sector
